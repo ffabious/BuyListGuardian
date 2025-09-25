@@ -1,16 +1,27 @@
-# buylistguard
+# BuyListGuard
 
-A new Flutter project.
+A lightweight Flutter app for tracking the items you still need to buy. Add new entries, toggle them off when they’re handled, and swipe to remove them entirely. Everything is stored locally on the device, so your list is ready the next time you open the app.
 
-## Getting Started
+## ✨ Features
 
-This project is a starting point for a Flutter application.
+- Quick-add dialog for new shopping items
+- Checkbox toggle to mark items as “still needed” or “done”
+- Swipe-to-delete with an extra delete button for accessibility
+- Local persistence powered by [`shared_preferences`](https://pub.dev/packages/shared_preferences)
 
-A few resources to get you started if this is your first Flutter project:
+## 🚀 Getting started
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter pub get
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## ✅ Tests
+
+```bash
+flutter test
+```
+
+## 📦 Data storage
+
+Items are serialized as JSON and stored in `SharedPreferences` under the key `buylistguard.items`. Deleting the app (or clearing app data) resets the list.
