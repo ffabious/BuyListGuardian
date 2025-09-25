@@ -21,7 +21,31 @@ class BuyListApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Buy List Guardian',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightGreen),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.lightGreen.shade200,
+          foregroundColor: Colors.black,
+          iconTheme: const IconThemeData(color: Colors.black),
+          actionsIconTheme: const IconThemeData(color: Colors.black),
+          titleTextStyle: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        checkboxTheme: CheckboxThemeData(
+          fillColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return Colors.lightGreen.shade300;
+            }
+            if (states.contains(WidgetState.pressed) ||
+                states.contains(WidgetState.hovered)) {
+              return Colors.lightGreen.shade100;
+            }
+            return Colors.grey.shade200;
+          }),
+          checkColor: WidgetStateProperty.all(Colors.black),
+        ),
         useMaterial3: true,
       ),
       home: BuyListPage(storage: storage),
@@ -194,7 +218,16 @@ class _BuyListPageState extends State<BuyListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Buy List Guardian')),
+      appBar: AppBar(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset('assets/icon/icon.png', width: 32, height: 32),
+            const SizedBox(width: 12),
+            const Text('Buy List Guardian'),
+          ],
+        ),
+      ),
       body: _buildBody(context),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
