@@ -18,7 +18,7 @@ class BuyListApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Buy List Guard',
+      title: 'Buy List Guardian',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
@@ -131,7 +131,7 @@ class _BuyListPageState extends State<BuyListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Buy List')),
+      appBar: AppBar(title: const Text('Buy List Guardian')),
       body: _buildBody(context),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -251,7 +251,7 @@ class BuyListStorage {
 
   final SharedPreferences _preferences;
 
-  static const _storageKey = 'buylistguard.items';
+  static const _storageKey = 'buylistguardian.items';
 
   static Future<BuyListStorage> create() async {
     final prefs = await SharedPreferences.getInstance();
