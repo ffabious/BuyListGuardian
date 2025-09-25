@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -89,10 +90,70 @@ class _BuyListPageState extends State<BuyListPage> {
     await widget.storage.saveItems(_items);
   }
 
-  Future<void> _removeItem(BuyItem item) async {
+  Future<void> _removeItem(
+    BuyItem item, {
+    int? index,
+    bool showUndo = false,
+  }) async {
+    final removalIndex =
+        index ?? _items.indexWhere((current) => current.id == item.id);
+    if (removalIndex < 0) {
+      return;
+    }
+
     setState(() {
-      _items = _items.where((current) => current.id != item.id).toList();
+      _items = List<BuyItem>.from(_items)..removeAt(removalIndex);
     });
+
+    await widget.storage.saveItems(_items);
+
+    if (!showUndo || !mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Removed "${item.name}"'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () {
+              if (!mounted) {
+                return;
+              }
+              setState(() {
+                final restored = List<BuyItem>.from(_items);
+                final insertIndex = removalIndex > restored.length
+                    ? restored.length
+                    : removalIndex;
+                restored.insert(insertIndex, item);
+                _items = restored;
+              });
+              unawaited(widget.storage.saveItems(_items));
+            },
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+  }
+
+  Future<void> _reorderItems(int oldIndex, int newIndex) async {
+    if (oldIndex == newIndex) {
+      return;
+    }
+
+    final updated = List<BuyItem>.from(_items);
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    final item = updated.removeAt(oldIndex);
+    updated.insert(newIndex, item);
+
+    setState(() {
+      _items = updated;
+    });
+
     await widget.storage.saveItems(_items);
   }
 
@@ -158,13 +219,21 @@ class _BuyListPageState extends State<BuyListPage> {
         ),
       );
     }
-    return ListView.separated(
+    return ReorderableListView.builder(
       padding: const EdgeInsets.only(bottom: 80),
       itemCount: _items.length,
+      buildDefaultDragHandles: false,
+      onReorder: (oldIndex, newIndex) {
+        unawaited(_reorderItems(oldIndex, newIndex));
+      },
       itemBuilder: (context, index) {
         final item = _items[index];
+        final divider = index == _items.length - 1
+            ? const BorderSide(width: 0, color: Colors.transparent)
+            : Divider.createBorderSide(context, width: 0);
+
         return Dismissible(
-          key: ValueKey(item.id),
+          key: ValueKey('dismiss-${item.id}'),
           direction: DismissDirection.endToStart,
           background: Container(
             alignment: Alignment.centerRight,
@@ -176,27 +245,65 @@ class _BuyListPageState extends State<BuyListPage> {
             ),
           ),
           onDismissed: (_) {
-            _removeItem(item);
+            _removeItem(item, index: index, showUndo: true);
           },
-          child: CheckboxListTile(
-            value: item.needed,
-            onChanged: (value) {
-              if (value == null) return;
-              _toggleNeeded(item, value);
-            },
-            title: Text(item.name, style: _titleStyle(context, item.needed)),
-            controlAffinity: ListTileControlAffinity.leading,
-            secondary: IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: 'Remove',
-              onPressed: () {
-                _removeItem(item);
-              },
+          child: Material(
+            type: MaterialType.transparency,
+            child: Container(
+              key: ValueKey('item-${item.id}'),
+              decoration: BoxDecoration(border: Border(bottom: divider)),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Checkbox(
+                    value: item.needed,
+                    onChanged: (value) {
+                      if (value == null) return;
+                      _toggleNeeded(item, value);
+                    },
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        _toggleNeeded(item, !item.needed);
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          item.name,
+                          style: _titleStyle(context, item.needed),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Semantics(
+                    button: true,
+                    label: 'Reorder ${item.name}',
+                    child: ReorderableDragStartListener(
+                      index: index,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 10,
+                        ),
+                        child: Icon(
+                          Icons.drag_indicator,
+                          size: 26,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
-      separatorBuilder: (_, __) => const Divider(height: 0),
     );
   }
 
@@ -207,7 +314,7 @@ class _BuyListPageState extends State<BuyListPage> {
     final base = Theme.of(context).textTheme.bodyLarge;
     return base?.copyWith(
           decoration: TextDecoration.lineThrough,
-          color: base.color?.withOpacity(0.6),
+          color: base.color?.withValues(alpha: 0.6),
         ) ??
         const TextStyle(decoration: TextDecoration.lineThrough);
   }
