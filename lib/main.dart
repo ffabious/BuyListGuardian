@@ -54,7 +54,7 @@ class _BuyListPageState extends State<BuyListPage> {
       final items = await widget.storage.loadItems();
       if (!mounted) return;
       setState(() {
-        _items = items;
+        _items = _arrangeItems(items);
         _loading = false;
         _errorMessage = null;
       });
@@ -72,20 +72,22 @@ class _BuyListPageState extends State<BuyListPage> {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return;
     setState(() {
-      _items = [..._items, BuyItem.newItem(name: trimmed)];
+      final updated = List<BuyItem>.from(_items)
+        ..add(BuyItem.newItem(name: trimmed));
+      _items = _arrangeItems(updated);
     });
     await widget.storage.saveItems(_items);
   }
 
   Future<void> _toggleNeeded(BuyItem item, bool needed) async {
     setState(() {
-      _items = _items
-          .map(
-            (current) => current.id == item.id
-                ? current.copyWith(needed: needed)
-                : current,
-          )
-          .toList();
+      final updated = List<BuyItem>.from(_items);
+      final index = updated.indexWhere((current) => current.id == item.id);
+      if (index < 0) {
+        return;
+      }
+      updated[index] = updated[index].copyWith(needed: needed);
+      _items = _arrangeItems(updated);
     });
     await widget.storage.saveItems(_items);
   }
@@ -128,7 +130,7 @@ class _BuyListPageState extends State<BuyListPage> {
                     ? restored.length
                     : removalIndex;
                 restored.insert(insertIndex, item);
-                _items = restored;
+                _items = _arrangeItems(restored);
               });
               unawaited(widget.storage.saveItems(_items));
             },
@@ -151,7 +153,7 @@ class _BuyListPageState extends State<BuyListPage> {
     updated.insert(newIndex, item);
 
     setState(() {
-      _items = updated;
+      _items = _arrangeItems(updated);
     });
 
     await widget.storage.saveItems(_items);
@@ -317,6 +319,19 @@ class _BuyListPageState extends State<BuyListPage> {
           color: base.color?.withValues(alpha: 0.6),
         ) ??
         const TextStyle(decoration: TextDecoration.lineThrough);
+  }
+
+  List<BuyItem> _arrangeItems(List<BuyItem> items) {
+    final needed = <BuyItem>[];
+    final notNeeded = <BuyItem>[];
+    for (final item in items) {
+      if (item.needed) {
+        needed.add(item);
+      } else {
+        notNeeded.add(item);
+      }
+    }
+    return [...needed, ...notNeeded];
   }
 }
 
