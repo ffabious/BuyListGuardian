@@ -4,16 +4,31 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'pages/codes_page.dart';
+import 'storage/code_storage.dart';
+import 'widgets/buy_list_app_bar.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final storage = await BuyListStorage.create();
-  runApp(BuyListApp(storage: storage));
+  final buyStorage = await BuyListStorage.create();
+  final codeStorage = await CodeStorage.create();
+  runApp(
+    BuyListApp(
+      buyStorage: buyStorage,
+      codeStorage: codeStorage,
+    ),
+  );
 }
 
 class BuyListApp extends StatelessWidget {
-  const BuyListApp({super.key, required this.storage});
+  const BuyListApp({
+    super.key,
+    required this.buyStorage,
+    required this.codeStorage,
+  });
 
-  final BuyListStorage storage;
+  final BuyListStorage buyStorage;
+  final CodeStorage codeStorage;
 
   @override
   Widget build(BuildContext context) {
@@ -34,21 +49,75 @@ class BuyListApp extends StatelessWidget {
           ),
         ),
         checkboxTheme: CheckboxThemeData(
-          fillColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
+          fillColor: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.selected)) {
               return Colors.lightGreen.shade300;
             }
-            if (states.contains(WidgetState.pressed) ||
-                states.contains(WidgetState.hovered)) {
+            if (states.contains(MaterialState.pressed) ||
+                states.contains(MaterialState.hovered)) {
               return Colors.lightGreen.shade100;
             }
             return Colors.grey.shade200;
           }),
-          checkColor: WidgetStateProperty.all(Colors.black),
+          checkColor: MaterialStateProperty.all(Colors.black),
         ),
         useMaterial3: true,
       ),
-      home: BuyListPage(storage: storage),
+      home: HomeShell(
+        buyStorage: buyStorage,
+        codeStorage: codeStorage,
+      ),
+    );
+  }
+}
+
+class HomeShell extends StatefulWidget {
+  const HomeShell({
+    super.key,
+    required this.buyStorage,
+    required this.codeStorage,
+  });
+
+  final BuyListStorage buyStorage;
+  final CodeStorage codeStorage;
+
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          BuyListPage(storage: widget.buyStorage),
+          CodesPage(storage: widget.codeStorage),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(Icons.list_alt),
+            label: 'Buy List',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.qr_code_scanner_outlined),
+            selectedIcon: Icon(Icons.qr_code_scanner),
+            label: 'Store Codes',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -218,16 +287,7 @@ class _BuyListPageState extends State<BuyListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset('assets/icon/icon.png', width: 32, height: 32),
-            const SizedBox(width: 12),
-            const Text('Buy List Guardian'),
-          ],
-        ),
-      ),
+      appBar: const BuyListAppBar(),
       body: _buildBody(context),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
